@@ -1,0 +1,117 @@
+﻿<Window x:Class="AI_Macro.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:AI_Macro"
+        xmlns:st="http://schemas.spicytaco.io/"
+        xmlns:view="clr-namespace:AI_Macro.View"
+        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        mc:Ignorable="d"
+        Title="AI Macro" Height="900" Width="600">
+    <Grid>
+        <st:AutoGrid Rows="Auto,Auto,Auto,Auto,*" Columns="*" Orientation="Vertical">
+            
+            <!-- 1 -->
+            <st:AutoGrid Rows="25" Columns="8*,2*" Orientation="Horizontal">
+                <ComboBox
+                    ItemsSource="{Binding Path=ProcDataList}"
+                    SelectedItem="{Binding Path=SelectedProcData}"                    
+                    VerticalAlignment="Top"  
+                >
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Path=ProcName}"/>
+                                <TextBlock Text=" - "/>
+                                <TextBlock Text="{Binding Path=WindowTitle}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="DropDownOpened">
+                            <i:InvokeCommandAction Command="{Binding DropDownOpenedCommand}"/>
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+                </ComboBox>
+                
+                <ComboBox ItemsSource="{Binding Path=Persons}"
+                  SelectedItem="{Binding Path=SPerson}"
+                  VerticalAlignment="Top"  >
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Path=Id}"/>
+                                <TextBlock Text=" - "/>
+                                <TextBlock Text="{Binding Path=Name}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="DropDownOpened">
+                            <i:InvokeCommandAction Command="{Binding DropDownOpenedCommand}"/>
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+                </ComboBox>
+
+                <TextBox Text="00:00:00.00" IsReadOnly="True"/>
+            </st:AutoGrid>
+
+            <!-- 2 -->
+            <st:AutoGrid Rows="*" Columns="Auto, *">
+                
+                <!--Left : Current Status-->
+                <Border BorderThickness="1" BorderBrush="WhiteSmoke">
+                    <Image Width="360" Height="640"/>
+                </Border>
+                
+
+                <!--Right Main Control-->
+                <st:AutoGrid Rows="Auto,*,*" Columns="*">                    
+                    <!--Control-->
+                    <st:AutoGrid Rows="25" Columns="*,*" Orientation="Horizontal">
+                        <Button Content="Start"/>
+                        <Button Content="Stop"/>
+                    </st:AutoGrid>
+                    
+                    <!--HashTag-->
+                    <st:AutoGrid Rows="25,*" Columns="*" Orientation="Vertical">
+                        <TextBox Text="HashTag"/>
+                        <view:CheckGridView/>
+                    </st:AutoGrid>
+
+                    <!--Reply-->
+                    <st:AutoGrid Rows="25,*" Columns="*" Orientation="Vertical">
+                        <TextBox Text="Reply"/>
+                        <view:CheckGridView/>
+                    </st:AutoGrid>
+                </st:AutoGrid>
+            </st:AutoGrid>
+
+            <!-- 3 -->
+            <st:AutoGrid Rows="25" Columns="*,*" Orientation="Horizontal">
+                <!--Detailed Control-->
+                <TextBox Text="WaitTime(Min)" IsReadOnly="True"/>
+                <TextBox Text="00"/>
+            </st:AutoGrid>
+
+
+            <!-- 4 -->
+            <st:AutoGrid Rows="25" Columns="*,*,*,*,*,*" Orientation="Horizontal">
+                <CheckBox Content="Like"/>
+                <CheckBox Content="Reply"/>
+                <CheckBox Content="Follow"/>
+                <CheckBox Content="UnFollow"/>
+                <CheckBox Content="Temp"/>
+                <CheckBox Content="Temp"/>
+            </st:AutoGrid>
+            
+            <!-- 5 -->
+            <st:AutoGrid Rows="25,*" Columns="*" Orientation="Horizontal">
+                <TextBox Text="Log" IsReadOnly="True"/>
+                <TextBox IsReadOnly="True"/>
+            </st:AutoGrid>
+            
+        </st:AutoGrid>
+    </Grid>
+</Window>
