@@ -10,8 +10,8 @@
         mc:Ignorable="d"
         Title="AI Macro" Height="900" Width="600">
     <Grid>
-        <st:AutoGrid Rows="Auto,Auto,Auto,Auto,*" Columns="*" Orientation="Vertical">
-            
+        <st:AutoGrid Rows="Auto,Auto,Auto,Auto,Auto,*" Columns="*" Orientation="Vertical" >
+
             <!-- 1 -->
             <st:AutoGrid Rows="25" Columns="8*,2*" Orientation="Horizontal">
                 <ComboBox
@@ -34,46 +34,28 @@
                         </i:EventTrigger>
                     </i:Interaction.Triggers>
                 </ComboBox>
-                
-                <ComboBox ItemsSource="{Binding Path=Persons}"
-                  SelectedItem="{Binding Path=SPerson}"
-                  VerticalAlignment="Top"  >
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding Path=Id}"/>
-                                <TextBlock Text=" - "/>
-                                <TextBlock Text="{Binding Path=Name}"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                    <i:Interaction.Triggers>
-                        <i:EventTrigger EventName="DropDownOpened">
-                            <i:InvokeCommandAction Command="{Binding DropDownOpenedCommand}"/>
-                        </i:EventTrigger>
-                    </i:Interaction.Triggers>
-                </ComboBox>
 
                 <TextBox Text="00:00:00.00" IsReadOnly="True"/>
             </st:AutoGrid>
 
             <!-- 2 -->
-            <st:AutoGrid Rows="*" Columns="Auto, *">
-                
+            <st:AutoGrid Rows="*" Columns="300, *" Orientation="Horizontal">
+    
                 <!--Left : Current Status-->
-                <Border BorderThickness="1" BorderBrush="WhiteSmoke">
-                    <Image Width="360" Height="640"/>
+                <Border BorderThickness="2" Margin="2" BorderBrush="WhiteSmoke">
+                    <view:CaptureView />
                 </Border>
-                
+
 
                 <!--Right Main Control-->
-                <st:AutoGrid Rows="Auto,*,*" Columns="*">                    
+                <st:AutoGrid Rows="Auto,*,*" Columns="*" Orientation="Vertical">
+
                     <!--Control-->
                     <st:AutoGrid Rows="25" Columns="*,*" Orientation="Horizontal">
                         <Button Content="Start"/>
                         <Button Content="Stop"/>
                     </st:AutoGrid>
-                    
+
                     <!--HashTag-->
                     <st:AutoGrid Rows="25,*" Columns="*" Orientation="Vertical">
                         <TextBox Text="HashTag"/>
@@ -89,29 +71,43 @@
             </st:AutoGrid>
 
             <!-- 3 -->
-            <st:AutoGrid Rows="25" Columns="*,*" Orientation="Horizontal">
+            <st:AutoGrid Rows="25" Columns="Auto,*" Orientation="Horizontal">
                 <!--Detailed Control-->
-                <TextBox Text="WaitTime(Min)" IsReadOnly="True"/>
+                <Label Content="Period" />
                 <TextBox Text="00"/>
             </st:AutoGrid>
 
-
             <!-- 4 -->
-            <st:AutoGrid Rows="25" Columns="*,*,*,*,*,*" Orientation="Horizontal">
-                <CheckBox Content="Like"/>
-                <CheckBox Content="Reply"/>
-                <CheckBox Content="Follow"/>
-                <CheckBox Content="UnFollow"/>
-                <CheckBox Content="Temp"/>
-                <CheckBox Content="Temp"/>
+            <st:AutoGrid Rows="25, 25" Columns="*" Orientation="Horizontal">
+                <!-- Mode -->
+                <Label Content="AI Mode" />
+
+                <st:AutoGrid>
+                    <CheckBox Content="Id"/>
+                    <CheckBox Content="Pos"/>
+                    <CheckBox Content="Follower"/>
+                </st:AutoGrid>
+
             </st:AutoGrid>
-            
+
             <!-- 5 -->
+            <st:AutoGrid Rows="25, 25" Columns="*" Orientation="Horizontal">
+                <!--Option-->
+                <Label Content="Option" />
+                <st:AutoGrid>
+                    <CheckBox Content="Like"/>
+                    <CheckBox Content="Reply"/>
+                    <CheckBox Content="Follow"/>
+                </st:AutoGrid>
+
+            </st:AutoGrid>
+
+            <!-- 6 -->
             <st:AutoGrid Rows="25,*" Columns="*" Orientation="Horizontal">
-                <TextBox Text="Log" IsReadOnly="True"/>
+                <Label Content="Log" />
                 <TextBox IsReadOnly="True"/>
             </st:AutoGrid>
-            
+
         </st:AutoGrid>
     </Grid>
 </Window>

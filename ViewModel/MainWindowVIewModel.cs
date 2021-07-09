@@ -18,14 +18,15 @@ public class MainWindowVIewModel : ViewModelBase
 
     public MainWindowVIewModel()
     {
-       
+
     }
     //ComboBox Items
     private ObservableCollection<ProcessData> _ProcDataList;
     public ObservableCollection<ProcessData> ProcDataList
     {
         get { return _ProcDataList; }
-        set {
+        set
+        {
             _ProcDataList = value;
             OnPropertyChanged("ProcDataList");
         }
@@ -36,9 +37,15 @@ public class MainWindowVIewModel : ViewModelBase
     public ProcessData SelectedProcData
     {
         get { return _SelectedProcData; }
-        set {
+        set
+        {
+
             _SelectedProcData = value;
-            OnPropertyChanged("SelectedProcData");
+            if (value != null)
+            {
+                GlobalData.SelectedProcess = value.Proc;
+                OnPropertyChanged("SelectedProcData");
+            }
         }
     }
 
@@ -108,7 +115,7 @@ public class MainWindowVIewModel : ViewModelBase
         }).Start();
     }
 
-    
+
 
     private ICommand _OkCommand;
     public ICommand OkCommand
@@ -120,6 +127,6 @@ public class MainWindowVIewModel : ViewModelBase
     }
     private void Ok_Execute()
     {
-        
+
     }
 }
