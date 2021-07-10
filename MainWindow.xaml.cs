@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Macro.Infrastructure;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -41,19 +42,36 @@ namespace AI_Macro
         {
             new Thread(() =>
             {
+                GlobalData.Status = SOME_MODE_STATUS.FIND_FOLLOW_TEXT;
                 while (!GlobalData.ExitAllThread)
                 {
                     if (GlobalData.SelectedProcess != null)
                     {
-                        bool res = CaptureProcScr();
+                        bool res = CaptureProcScr(out Bitmap bmp);
 
                         switch (GlobalData.Status)
                         {
-                            case 1:
+                            case SOME_MODE_STATUS.FIND_FOLLOW_TEXT:
+                                //17 246 230
+                                {
+                                    if( OpenCVHelper.SearchColor(bmp, 22, 143, 224, out System.Windows.Point loc, true) )
+                                    {
+                                        GlobalData.Status = SOME_MODE_STATUS.FIND_BOTTOM_MENU;
+                                        
+                                    }
+                                    else
+                                    {
+                                        //move Wheel
+                                    }
+                                    
+                                }
                                 break;
                             default:
                                 break;
                         }
+                        GlobalData.SetBitmap(bmp);
+
+
                     }
                     Thread.Sleep(1000);
                 }
@@ -61,17 +79,18 @@ namespace AI_Macro
             ).Start();
         }
 
-        private static bool CaptureProcScr()
+        private static bool CaptureProcScr(out Bitmap bmp)
         {
-            bool ret = DisplayHelper.ProcessCapture(GlobalData.SelectedProcess, out Bitmap bmp, false);
+            bool ret = DisplayHelper.ProcessCapture(GlobalData.SelectedProcess, out bmp, true);
             if (ret)
             {
-                GlobalData.WindowCapture.Enqueue(bmp);
+                GlobalData.SetBitmap(new Bitmap(bmp));
+                
             }
             else
             {
                 Bitmap _bmp = (Bitmap)Bitmap.FromFile(System.AppDomain.CurrentDomain.BaseDirectory + "\\nosignal.jpg", true);
-                GlobalData.WindowCapture.Enqueue(_bmp);
+                GlobalData.SetBitmap(new Bitmap(_bmp));
             }
             return ret;
         }
