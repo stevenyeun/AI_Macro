@@ -10,10 +10,10 @@ namespace AI_Macro
 {
     public enum SOME_MODE_STATUS
     {
-        IDLE,
-        CAPTURE,
+        IDLE,        
         FIND_FOLLOW_TEXT,
         FIND_BOTTOM_MENU,
+        FIND_PICTURE,
     }
     static public class GlobalData
     {

@@ -97,6 +97,9 @@ namespace Utils
         public static extern bool PostMessage(IntPtr hWnd, WindowMessage Msg, int wParam, int lParam);
 
         [DllImport("user32.dll")]
+        public static extern bool SendMessage(IntPtr hWnd, WindowMessage Msg, int wParam, string lParam);
+
+        [DllImport("user32.dll")]
         public static extern uint SendInput(uint inputCount, Input[] inputs, int structSize);
 
         [DllImport("shcore.dll")]

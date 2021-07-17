@@ -40,7 +40,7 @@ namespace Macro.Infrastructure
                 }
             }
 
-            if (isResultDisplay)
+            if (isResultDisplay && ret)
             {
                 using (var gr = Graphics.FromImage(source))
                 {
@@ -52,16 +52,20 @@ namespace Macro.Infrastructure
             }
             return ret;
         }
-        public static int Search(Bitmap source, Bitmap target, out System.Windows.Point location,  bool isResultDisplay = false)
+        public static bool Search(Bitmap source, Bitmap target, out System.Windows.Point location, int thresh, bool isResultDisplay = false)
         {
-            var sourceMat = BitmapConverter.ToMat(source);
-            var targetMat = BitmapConverter.ToMat(target);
+            var _sourceMat = BitmapConverter.ToMat(source);
+            var sourceMat = _sourceMat.CvtColor(ColorConversionCodes.RGB2GRAY);
+            var _targetMat = BitmapConverter.ToMat(target);
+            var targetMat = _targetMat.CvtColor(ColorConversionCodes.RGB2GRAY);
             if (sourceMat.Cols <= targetMat.Cols || sourceMat.Rows <= targetMat.Rows)
             {
                 location = new System.Windows.Point();
-                return 0;
+                return false;
             }
-
+            //Mat result = new Mat();
+            //Cv2.MatchTemplate(sourceMat, targetMat, result, TemplateMatchModes.CCoeffNormed);
+            
             var match = sourceMat.MatchTemplate(targetMat, TemplateMatchModes.CCoeffNormed);
             Cv2.MinMaxLoc(match, out _, out double max, out _, out Point maxLoc);
 
@@ -70,17 +74,28 @@ namespace Macro.Infrastructure
                 X = maxLoc.X,
                 Y = maxLoc.Y
             };
-            if(isResultDisplay)
+
+            int prob = Convert.ToInt32(max * 100);
+            bool ret = false;
+
+            if (prob > thresh)
+            {
+                ret = true;
+            }
+
+            if (isResultDisplay && ret)
             {
                 using (var g = Graphics.FromImage(source))
                 {
-                    using (var pen = new Pen(Color.Red, 2))
+                    using (var pen = new Pen(Color.Red, 5))
                     {
                         g.DrawRectangle(pen, new Rectangle() { X = (int)location.X, Y = (int)location.Y, Width = target.Width, Height = target.Height });
                     }
                 }
             }
-            return Convert.ToInt32(max * 100);
+
+            return ret;
+
         }
         public static List<System.Windows.Point> MultipleSearch(Bitmap source, Bitmap target, int similarity, int maxSameRepeatCount, bool isResultDisplay = false)
         {

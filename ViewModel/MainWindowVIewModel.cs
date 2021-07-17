@@ -49,6 +49,24 @@ public class MainWindowVIewModel : ViewModelBase
         }
     }
 
+    //Log
+    private string _LogText;
+    public string LogText
+    {
+        get { return _LogText; }
+        set
+        {
+            string now = DateTime.Now.ToString("[yyyy-MM-dd HH:mm:ss] ");
+            _LogText += now + value;
+            _LogText += "\n";
+            if (value != null)
+            {                
+                OnPropertyChanged("LogText");
+            }
+        }
+    }
+
+
 
 
     //private string _ChInfo;

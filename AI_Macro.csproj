@@ -85,14 +85,22 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="AutoScrollBehavior.cs" />
     <Compile Include="Common\DelegateCommand.cs" />
     <Compile Include="Common\ViewModelBase.cs" />
     <Compile Include="Data\ProcessData.cs" />
     <Compile Include="Common\GlobalData.cs" />
+    <Compile Include="Extensions\ImageExtensions.cs" />
+    <Compile Include="Extensions\KeyCodeExtension.cs" />
+    <Compile Include="Extensions\ObjectExtensions.cs" />
+    <Compile Include="Extensions\SizeObserver.cs" />
+    <Compile Include="Infrastructure\Controller\KeyBoardMouseController.cs" />
+    <Compile Include="Infrastructure\Enums.cs" />
     <Compile Include="Infrastructure\Interface\IKeyboardInput.cs" />
     <Compile Include="Infrastructure\Interface\IMouseInput.cs" />
     <Compile Include="Infrastructure\KeyboardInput.cs" />
     <Compile Include="Infrastructure\MouseInput.cs" />
+    <Compile Include="Infrastructure\MouseTriggerInfo.cs" />
     <Compile Include="Infrastructure\OpenCVHelper.cs" />
     <Compile Include="Infrastructure\Version.cs" />
     <Compile Include="ViewModel\CaptureViewModel.cs" />

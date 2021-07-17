@@ -63,7 +63,7 @@ namespace Utils.Infrastructure
         RButtonDoubleClick,
 
         MouseWheel = 0x20A,
-
+        SetText = 0x00C,
         Max
     }
     
