@@ -40,7 +40,7 @@
             </st:AutoGrid>
 
             <!-- 2 -->
-            <st:AutoGrid Rows="*" Columns="250, *" Orientation="Horizontal">
+            <st:AutoGrid Rows="*" Columns="300, *" Orientation="Horizontal">
 
                 <!--Left : Current Status-->
                 <Border BorderThickness="2" Margin="2" BorderBrush="WhiteSmoke">

@@ -23,7 +23,7 @@ namespace AI_Macro
         static public bool ExitAllThread = false;
         static public SOME_MODE_STATUS Status = 0;
 
-        static public void SetBitmap(Bitmap bmp)
+        static public void SetDrawBitmap(Bitmap bmp)
         {
             lock (lockObject)
             {
