@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using Utils.Infrastructure;
@@ -9,6 +10,9 @@ namespace Utils
 {
     public class NativeHelper
     {
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+
         [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
 
@@ -58,6 +62,27 @@ namespace Utils
             }
             return childHandles;
         }
+
+        public static bool GetClassNameFromHwnd(IntPtr hWnd, out string outClassName)
+        {
+            outClassName = "";
+            int nRet;
+            // Pre-allocate 256 characters, since this is the maximum class name length.
+            StringBuilder ClassName = new StringBuilder(256);
+            //Get the window class name
+            nRet = GetClassName(hWnd, ClassName, ClassName.Capacity);
+            if (nRet != 0)
+            {
+                outClassName = ClassName.ToString();
+                return true;
+                //return (string.Compare(ClassName.ToString(), "Internet Explorer_Server", true, CultureInfo.InvariantCulture) == 0);
+            }
+            else
+            {
+                return false;
+            }
+        }
+
 
         [DllImport("user32.dll")]
         public static extern bool PrintWindow(IntPtr hWnd, IntPtr hdcBlt, int flags);

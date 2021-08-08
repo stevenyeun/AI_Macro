@@ -10,10 +10,21 @@ namespace AI_Macro
 {
     public enum SOME_MODE_STATUS
     {
-        IDLE,        
-        FIND_FOLLOW_TEXT,
-        FIND_BOTTOM_MENU,
+        IDLE,
+        FIND_TOP_PROFILE,
+        FIND_FOLLOW_BLUE_TEXT,        
         FIND_PICTURE,
+        FIND_HEART,
+        CLICK_HEART,
+        FIND_REPLY,
+        CLICK_REPLY,
+        INPUT_TEXT,
+        FIND_POST,
+        CLICK_POST,
+        FIND_BACK_BTN,
+        CLICK_BACK_BTN,
+        CLICK_FOLLOW_BTN,
+        PROC_FAIL,
     }
     static public class GlobalData
     {
@@ -38,7 +49,9 @@ namespace AI_Macro
                 if (WindowCapture.Count() > 0)
                 {
                     bmp = WindowCapture.Dequeue();
-                    return true;
+
+                    if(bmp != null)
+                        return true;
                 }
             }
             return false;

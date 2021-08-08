@@ -12,34 +12,107 @@ namespace Macro.Infrastructure
 {
     public class OpenCVHelper
     {
-
-        public static bool SearchColor(Bitmap source, byte r, byte g, byte b, out System.Windows.Point location, bool isResultDisplay = false)
+        public static bool FindOneContourNum(Bitmap source, int x, int y, int width, int height,
+            out byte r, out byte g, out byte b,
+            out System.Windows.Point location,
+            bool isResultDisplay = false)
         {
-            bool ret = false;
+            r = 0;
+            g = 0;
+            b = 0;
+
             location = new System.Windows.Point()
             {
                 X = 0,
                 Y = 0
             };
+            bool ret = false;
+
             var sourceMat = BitmapConverter.ToMat(source);
-            for (int y = 0; y < source.Height; y++)
+            var partialMat = sourceMat[new OpenCvSharp.Rect(x, y, width, height)];
+            //Cv2.ImShow("partialMat", partialMat);
+            //Cv2.WaitKey(1);
+
+            var grayMat = partialMat.CvtColor(ColorConversionCodes.RGB2GRAY);//  new Mat();
+            
+            /* 0 black 255 white */
+            Cv2.Threshold(grayMat, grayMat, 254, 255, ThresholdTypes.Tozero/*black*/);
+            //Cv2.ImShow("grayMat", grayMat);
+            //Cv2.WaitKey(1);
+            Cv2.FindContours(grayMat, out Point[][] contours, out HierarchyIndex[] hierarchy, RetrievalModes.List, ContourApproximationModes.ApproxSimple);
+            
+            List<Point[]> new_contours = new List<Point[]>();
+            List<Point> new_contoursCenter = new List<Point>();
+            for (int i = 0; i < contours.Length; i++)
             {
-                for (int x = 0; x < source.Width; x++)
+                //외곽선 길이를 반환합니다.
+                double arcLen = Cv2.ArcLength((contours[i]), true);
+
+                //외곽선을 단순화                
+                Point[] approx = Cv2.ApproxPolyDP(contours[i], arcLen * 0.02/*근사정확도*/, true);
+                int area = (int)Math.Abs(Cv2.ContourArea(approx));
+                
+                if (area > 0)
                 {
-                    Color clr = source.GetPixel(x, y);
-                    
-                    if(clr.R == r && clr.G == g && clr.B == b)
+
+                    var mmt = Cv2.Moments(approx);
+                    double cx = mmt.M10 / mmt.M00,
+                        cy = mmt.M01 / mmt.M00;
+
+                    #region
+                    /*
+                    var mmt = Cv2.Moments(approx);
+                    double cx = mmt.M10 / mmt.M00,
+                        cy = mmt.M01 / mmt.M00;
+
+                   // Console.WriteLine(cx + " " + cy);
+                    Cv2.Circle(partialMat, new Point(cx, cy), 1, Scalar.Red, -1, LineTypes.AntiAlias);
+                    Cv2.ImShow("after", partialMat);
+                    Cv2.WaitKey(1);
+                    */
+                    #endregion
+                    //IsContourConvex : contour에 오목한 부분이 있는지 체크하고 있다면 False 없다면 True를 반환한다. 
+                    if (/*Cv2.IsContourConvex(approx) && */approx.Length != 4)
                     {
-                        location = new System.Windows.Point()
-                        {
-                            X = x,
-                            Y = y
-                        };
-                        ret = true;
-                        y = source.Height;
-                        x = source.Width;
+                        new_contoursCenter.Add(new Point(cx, cy));
+                        new_contours.Add(approx);
                     }
                 }
+            }
+            //Cv2.DrawContours(partialMat, contours, -1, new Scalar(0, 255, 0), 1, LineTypes.AntiAlias, null, 1);
+            //Cv2.ImShow("DrawContours", partialMat);
+            //Cv2.WaitKey(1);
+
+            if (new_contours.Count() > 0 && new_contours.Count() <= 2)
+            {
+                if (new_contours.Count() == 2)
+                {
+                    var distance = Math.Sqrt(
+                        (Math.Pow(new_contoursCenter[0].X - new_contoursCenter[1].X, 2)
+                        + Math.Pow(new_contoursCenter[0].Y - new_contoursCenter[1].Y, 2))
+                        );
+
+                    if (distance < 2)
+                    {
+                        new_contoursCenter.RemoveAt(1);
+                        new_contours.RemoveAt(1);
+                    }
+                }
+                if(new_contours.Count() == 1)
+                {
+                    ret = true;
+
+                    //remove
+                    Vec3b bgr = partialMat.At<Vec3b>((int)new_contoursCenter[0].Y, (int)new_contoursCenter[0].X);
+                    b = bgr[0];
+                    g = bgr[1];
+                    r = bgr[2];
+
+                    //rel to abs
+                    location.X = new_contoursCenter[0].X + x;
+                    location.Y = new_contoursCenter[0].Y + y;
+                }
+
             }
 
             if (isResultDisplay && ret)
@@ -48,12 +121,189 @@ namespace Macro.Infrastructure
                 {
                     using (var pen = new Pen(Color.Red, 5))
                     {
-                        gr.DrawEllipse(pen, new Rectangle() { X = (int)location.X, Y = (int)location.Y, Width = 30, Height = 30 });
+                        //double arcLen = Cv2.ArcLength(contour, true);
+
+                        //외곽선을 단순화
+                        //Point[] approx = Cv2.ApproxPolyDP(contour, arcLen * 0.02/*근사정확도*/, true);
+                        var _rect = Cv2.BoundingRect(new_contours[0]);
+                        var rect = new Rectangle()
+                        { X = x + _rect.X, Y = y + _rect.Y, Width = _rect.Width, Height = _rect.Height };
+
+                        gr.DrawRectangle(pen, rect);
+                    }
+                }
+            }
+            //Cv2.DrawContours(partialMat, new_contours, -1, new Scalar(0, 255, 0), 1, LineTypes.AntiAlias, null, 1);            
+            //Cv2.ImShow("after", partialMat);
+            //Cv2.WaitKey(1);
+    
+            return ret;
+        }
+
+        public static bool FindBackArrow(Bitmap source, int x, int y, int width, int height,
+            out System.Windows.Point location,
+            bool isResultDisplay = false)
+        { 
+            location = new System.Windows.Point()
+            {
+                X = 0,
+                Y = 0
+            };
+            bool ret = false;
+
+            var sourceMat = BitmapConverter.ToMat(source);
+            var partialMat = sourceMat[new OpenCvSharp.Rect(x, y, width, height)];
+            //Cv2.ImShow("partialMat", partialMat);
+            //Cv2.WaitKey(1);
+
+            var grayMat = partialMat.CvtColor(ColorConversionCodes.RGB2GRAY);//  new Mat();
+
+            /* 0 black 255 white */
+            Cv2.Threshold(grayMat, grayMat, 254, 255, ThresholdTypes.Tozero/*black*/);
+            //Cv2.ImShow("grayMat", grayMat);
+            //Cv2.WaitKey(1);
+            Cv2.FindContours(grayMat, out Point[][] contours, out HierarchyIndex[] hierarchy, RetrievalModes.List, ContourApproximationModes.ApproxSimple);
+
+            List<Point[]> new_contours = new List<Point[]>();
+            List<Point> new_contoursCenter = new List<Point>();
+            List<int> new_contoursCenterY = new List<int>();
+            for (int i = 0; i < contours.Length; i++)
+            {
+                //외곽선 길이를 반환합니다.
+                double arcLen = Cv2.ArcLength((contours[i]), true);
+
+                //외곽선을 단순화                
+                Point[] approx = Cv2.ApproxPolyDP(contours[i], arcLen * 0.02/*근사정확도*/, true);
+                int area = (int)Math.Abs(Cv2.ContourArea(approx));
+
+                if (area > 0)
+                {
+                    //var mmt = Cv2.Moments(approx);
+                    //double cx = mmt.M10 / mmt.M00,
+                    //cy = mmt.M01 / mmt.M00;
+
+                    #region
+                  
+                    var mmt = Cv2.Moments(approx);
+                    double cx = mmt.M10 / mmt.M00,
+                        cy = mmt.M01 / mmt.M00;
+                                        
+                    //Cv2.Circle(partialMat, new Point(cx, cy), 1, Scalar.Red, -1, LineTypes.AntiAlias);
+                    //Cv2.ImShow("after", partialMat);
+                    //Cv2.WaitKey(1);
+                    
+                    #endregion
+
+                    //IsContourConvex : contour에 오목한 부분이 있는지 체크하고 있다면 False 없다면 True를 반환한다. 
+                    //if (/*Cv2.IsContourConvex(approx) && */approx.Length != 4)
+                    {
+                        new_contoursCenterY.Add((int)cy);
+                        new_contoursCenter.Add(new Point(cx, cy));
+                        new_contours.Add(approx);
+                    }
+                }
+            }
+            //Cv2.DrawContours(partialMat, new_contours, -1, new Scalar(0, 255, 0), 1, LineTypes.AntiAlias, null, 1);
+            //Cv2.ImShow("DrawContours", partialMat);
+            //Cv2.WaitKey(1);
+
+            Point[] finalContour = null;
+            if (new_contours.Count() > 0)
+            {
+                ret = true;
+
+                int indexLowerMostY = new_contoursCenterY.IndexOf(new_contoursCenterY.Max());
+                finalContour = new_contours[indexLowerMostY];
+
+                //rel to abs
+                location.X = new_contoursCenter[indexLowerMostY].X + x;
+                location.Y = new_contoursCenter[indexLowerMostY].Y + y;
+            }
+
+            if (isResultDisplay && ret)
+            {
+                using (var gr = Graphics.FromImage(source))
+                {
+                    using (var pen = new Pen(Color.Red, 5))
+                    {
+                        //double arcLen = Cv2.ArcLength(contour, true);
+
+                        //외곽선을 단순화
+                        //Point[] approx = Cv2.ApproxPolyDP(contour, arcLen * 0.02/*근사정확도*/, true);
+                        var _rect = Cv2.BoundingRect(finalContour);
+                        var rect = new Rectangle()
+                        { X = x + _rect.X, Y = y + _rect.Y, Width = _rect.Width, Height = _rect.Height };
+
+                        gr.DrawRectangle(pen, rect);
+                    }
+                }
+            }
+
+            //Cv2.DrawContours(partialMat, new_contours, -1, new Scalar(0, 255, 0), 1, LineTypes.AntiAlias, null, 1);            
+            //Cv2.ImShow("after", partialMat);
+            //Cv2.WaitKey(1);
+
+            return ret;
+        }
+
+
+        public static bool SearchBlueColor(Bitmap source, int x, int y, int width, int height,
+            out System.Windows.Point location, bool isResultDisplay = false)
+        {
+            bool ret = false;
+            location = new System.Windows.Point()
+            {
+                X = 0,
+                Y = 0
+            };
+            var sourceMat = BitmapConverter.ToMat(source);
+            sourceMat = sourceMat[new OpenCvSharp.Rect(x, y, width, height)];
+            //Cv2.ImShow("sourceMat", sourceMat);
+            //Cv2.WaitKey(1);
+            sourceMat = sourceMat.CvtColor(ColorConversionCodes.BGR2HSV);
+            Mat[] splitMat = Cv2.Split(sourceMat);
+            sourceMat = sourceMat.CvtColor(ColorConversionCodes.HSV2BGR);
+
+            Mat mask = new Mat();
+        
+
+            Cv2.InRange(splitMat[0], new Scalar(94)/* light blue */, new Scalar(126)/*dark blue*/, mask);
+            //Cv2.ImShow("mask", mask);
+            //Cv2.WaitKey(1);
+            Cv2.FindContours(mask, out Point[][] contours, out HierarchyIndex[] hierarchy, RetrievalModes.List, ContourApproximationModes.ApproxSimple);
+
+            if(contours.Length > 0)
+            {
+                ret = true;
+            }
+            
+            if (isResultDisplay && ret)
+            {
+                using (var gr = Graphics.FromImage(source))
+                {
+                    using (var pen = new Pen(Color.Red, 5))
+                    {
+                        //foreach(var contour in contours)
+                        {
+                            //double arcLen = Cv2.ArcLength(contour, true);
+
+                            //외곽선을 단순화
+                            //Point[] approx = Cv2.ApproxPolyDP(contour, arcLen * 0.02/*근사정확도*/, true);
+                            var _rect = Cv2.BoundingRect(contours[0]);
+                            var rect = new Rectangle()
+                            { X = x + _rect.X, Y = y + _rect.Y, Width = _rect.Width, Height = _rect.Height };
+
+                            gr.DrawRectangle(pen, rect);
+
+                            location.X = rect.X;
+                            location.Y = rect.Y;
+                        }
                     }
                 }
             }
             return ret;
         }
+
         public static bool Search(Bitmap source, Bitmap target, out System.Windows.Point location, int thresh, bool isResultDisplay = false)
         {
             var _sourceMat = BitmapConverter.ToMat(source);
@@ -183,7 +433,7 @@ namespace Macro.Infrastructure
                 var _sourceMat = BitmapConverter.ToMat(source);
                 var sourceMat = _sourceMat.CvtColor(ColorConversionCodes.RGB2GRAY);
                 var thresholded = new Mat();
-                Cv2.Threshold(sourceMat, thresholded, 0, 255, ThresholdTypes.Binary);
+                Cv2.Threshold(sourceMat, thresholded, 0, 255, ThresholdTypes.BinaryInv);
 
                 binBmp = BitmapConverter.ToBitmap(thresholded);
             }
@@ -211,23 +461,28 @@ namespace Macro.Infrastructure
         {
             return (float)Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
         }
-        public static bool SearchCircle(Bitmap source, out System.Windows.Point location, int thresh, bool isResultDisplay = false)
+        public static bool SearchTopProfileCircle(Bitmap source, out System.Windows.Point centerLocation, out int radius, bool isResultDisplay = false)
         {
-            location = new System.Windows.Point()
+            centerLocation = new System.Windows.Point()
             {
                 X = 0,
                 Y = 0
             };
-
+            radius = 0;
             //to gray
             // to bin
             // to contour
-            var oriMat = BitmapConverter.ToMat(source);
+            //var oriMat = BitmapConverter.ToMat(source);
 
             var sourceMat = BitmapConverter.ToMat(source);
             sourceMat = sourceMat.CvtColor(ColorConversionCodes.RGB2GRAY);//  new Mat();
-                     
-            Cv2.Threshold(sourceMat, sourceMat, 0, 255, ThresholdTypes.Binary);
+
+            //Cv2.ImShow("before", sourceMat);
+            /* 0 black 255 white */
+            
+            Cv2.Threshold(sourceMat, sourceMat, 254, 255,ThresholdTypes.Tozero/*black*/);
+            //Cv2.ImShow("after", sourceMat);
+            //Cv2.WaitKey(1);
 
             Cv2.FindContours(sourceMat, out Point[][] contours, out HierarchyIndex[] hierarchy, RetrievalModes.List, ContourApproximationModes.ApproxSimple);
 
@@ -247,14 +502,14 @@ namespace Macro.Infrastructure
                 //int circleWidth = sourceMat.Width / 12;
                 //int circleRadius = (sourceMat.Width / 13) / 2;
                 //int circleRadius = (sourceMat.Width / 14) / 2;
-                int circleRadius = (sourceMat.Width / 15) / 2;
+                int circleRadius = (sourceMat.Width / 17) / 2;
                 int expectedCircleArea = (int)(circleRadius * circleRadius * Math.PI);
                 int area = (int)Math.Abs(Cv2.ContourArea(approx));
                 //Console.WriteLine(area);
                 if (area > expectedCircleArea)  //면적이 일정크기 이상이어야 한다. 
                 {
                     int size = approx.Length;
-
+                    //Console.WriteLine(size);
 #if false
                     //모든 코너의 각도를 구해서 더한다.
                     //int ang_sum = 0;
@@ -328,7 +583,7 @@ namespace Macro.Infrastructure
 
             bool ret = false;
 
-            if (new_contours.Count > 0)
+            if (new_contours.Count == 1)
             {
                 ret = true;                
             }
@@ -342,28 +597,136 @@ namespace Macro.Infrastructure
                     {
                         foreach(var contour in new_contours)
                         {
-                            Cv2.MinEnclosingCircle(contour, out Point2f center, out float radius); 
+                            Cv2.MinEnclosingCircle(contour, out Point2f center, out float _radius); 
                             g.DrawEllipse(pen, new Rectangle() {
-                                X = (int)center.X- (int)radius,
-                                Y = (int)center.Y- (int)radius,
-                                Width = (int)radius*2, Height = (int)radius*2
+                                X = (int)center.X- (int)_radius,
+                                Y = (int)center.Y- (int)_radius,
+                                Width = (int)_radius * 2,
+                                Height = (int)_radius * 2
                             });
-                        }
-                        
 
+                            centerLocation.X = center.X;
+                            centerLocation.Y = center.Y;
+                            radius = (int)_radius;
+                        }
                     }
                 }
-
-                
-
             }
-            //Cv2.ImShow("oriMat", oriMat);
-            //Cv2.ImShow("sourceMat", sourceMat);
-            //Cv2.WaitKey(1);
-
-            return true;
+           // Cv2.ImShow("oriMat", oriMat);
+            
+            return ret;
 
         }
+
+        public static int sideBar = 15;
+        public static bool SearchFeedPictureRect(Bitmap source, out Rectangle pictureRect,
+            bool isResultDisplay = false)
+        {
+            pictureRect = new Rectangle()
+            {
+                X = 0,
+                Y = 0,
+                Width = 0,
+                Height = 0
+            };
+            var orgMat = BitmapConverter.ToMat(source);
+            var sourceMat = BitmapConverter.ToMat(source);
+
+            //사진 위치를 찾기위해 좌우 더미라인 그리기
+            Cv2.Line(sourceMat, new Point(0, 0), new Point(0, sourceMat.Height), new Scalar(255, 255, 255), sideBar);
+            Cv2.Line(sourceMat, new Point(sourceMat.Width- sideBar, 0), new Point(sourceMat.Width - sideBar, sourceMat.Height), new Scalar(255, 255, 255), sideBar);
+
+            sourceMat = sourceMat.CvtColor(ColorConversionCodes.RGB2GRAY);//  new Mat();
+            Cv2.Threshold(sourceMat, sourceMat, 254, 255, ThresholdTypes.Tozero/*black*/);
+
+            //Cv2.ImShow("Threshold", sourceMat);
+            //Cv2.WaitKey(1);
+            
+
+            Cv2.FindContours(sourceMat, out Point[][] contours, out HierarchyIndex[] hierarchy, RetrievalModes.List, ContourApproximationModes.ApproxSimple);
+
+          
+            //contour를 근사화한다.
+            List<double> avgColor = new List<double>();
+            List<Point[]> filter1Contours = new List<Point[]>();
+
+            for (int i = 0; i < contours.Length; i++)
+            {
+                //외곽선 길이를 반환합니다.
+                double arcLen = Cv2.ArcLength((contours[i]), true);
+
+                //외곽선을 단순화
+                Point[] approx = Cv2.ApproxPolyDP(contours[i], arcLen * 0.02/*근사정확도*/, true);
+           
+                int expectedRectArea = sourceMat.Width * 2;
+                int area = (int)Math.Abs(Cv2.ContourArea(approx));
+                //Console.WriteLine(area);
+                if (area > expectedRectArea)  //면적이 일정크기 이상이어야 한다. 
+                {
+                    int size = approx.Length;
+                    if (size == 4 && Cv2.IsContourConvex(approx))
+                    {
+                        var rect = Cv2.BoundingRect(approx);
+                        avgColor.Add( Cv2.Mean(sourceMat[rect]).Val0 );
+                        filter1Contours.Add(approx);
+                    }
+                }
+            }
+            bool ret = false;
+
+            Point[] finalContour = null;
+            if (filter1Contours.Count > 0)
+            {
+                //second filter
+                List<double> newAvgColor = new List<double>();
+                List<Point[]> secondFilterContours = new List<Point[]>();
+                List<int> secondFilterTop = new List<int>();
+                for (int i=0; i<avgColor.Count(); i++)
+                {
+                    if(avgColor[i] < avgColor.Average())
+                    {
+                        newAvgColor.Add(avgColor[i]);
+                        secondFilterContours.Add(filter1Contours[i]);
+
+                        var rect = Cv2.BoundingRect(filter1Contours[i]);
+                        secondFilterTop.Add(rect.Top);
+                    }
+                }
+                //가장위에있는 rect
+                int indexUpperMostY = secondFilterTop.IndexOf( secondFilterTop.Min());
+                finalContour = secondFilterContours[indexUpperMostY];
+
+                ret = true;
+            }
+
+            if (isResultDisplay && ret)
+            {
+                using (var g = Graphics.FromImage(source))
+                {
+                    using (var pen = new Pen(Color.Red, 5))
+                    {
+                        //Cv2.DrawContours(orgMat, filter1Contours, -1, new Scalar(0, 255, 0), 10, LineTypes.AntiAlias, null, 1);
+                        //Cv2.ImShow("DrawContours", orgMat);
+
+                        var rect = Cv2.BoundingRect(finalContour);
+                        pictureRect = new Rectangle()
+                        {
+                            X = rect.X,
+                            Y = rect.Y,
+                            Width = rect.Width,
+                            Height = rect.Height
+                        };
+                        g.DrawRectangle(pen, pictureRect);
+                        //}
+                    }
+                }
+            }
+            // Cv2.ImShow("oriMat", oriMat);
+
+            return ret;
+
+        }
+
         public static bool SearchByBinImg(Bitmap source, Bitmap target, out System.Windows.Point location, int thresh, bool isResultDisplay = false)
 
         {
@@ -377,14 +740,14 @@ namespace Macro.Infrastructure
             var __sourceMat = _sourceMat.CvtColor(ColorConversionCodes.RGB2GRAY);//  new Mat();
                                                                                  //black = 0, white = 255
             var sourceMat = new Mat();
-            Cv2.Threshold(__sourceMat, sourceMat, 0, 255, ThresholdTypes.Binary);
+            Cv2.Threshold(__sourceMat, sourceMat, 0, 255, ThresholdTypes.BinaryInv);
             //var ___sourceMat= new Mat();
             Cv2.FastNlMeansDenoising(sourceMat, sourceMat, 50);
 
             var _targetMat = BitmapConverter.ToMat(target);
             var __targetMat = _targetMat.CvtColor(ColorConversionCodes.RGB2GRAY);
             var targetMat = new Mat();
-            Cv2.Threshold(__targetMat, targetMat, 0, 255, ThresholdTypes.Binary);
+            Cv2.Threshold(__targetMat, targetMat, 0, 255, ThresholdTypes.BinaryInv);
             //var ___targetMat = new Mat();
             Cv2.FastNlMeansDenoising(targetMat, targetMat, 50);
 
@@ -426,7 +789,6 @@ namespace Macro.Infrastructure
                     using (var pen = new Pen(Color.Red, 5))
                     {
                         g.DrawRectangle(pen, new Rectangle() { X = (int)location.X, Y = (int)location.Y, Width = target.Width, Height = target.Height });
-
                     }
                 }
             }
@@ -435,7 +797,7 @@ namespace Macro.Infrastructure
 
         }
 
-        public static bool SetBlackMask(Bitmap source, int x, int width)
+        public static bool SetBlackMask(Bitmap source, int x, int width, int y, int height)
         {
             try
             {
@@ -450,6 +812,14 @@ namespace Macro.Infrastructure
                             Y = 0,
                             Width = width,
                             Height = source.Height
+                        });
+
+                        g.FillRectangle(brush, new Rectangle()
+                        {
+                            X = 0,
+                            Y = y,
+                            Width = source.Width,
+                            Height = height
                         });
 
                     }

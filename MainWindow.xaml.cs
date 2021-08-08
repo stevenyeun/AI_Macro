@@ -40,63 +40,283 @@ namespace AI_Macro
             StartSomeMode();
         }
 
+        //Reply Idea : MonthDay
         private void StartSomeMode()
         {
             new Thread(() =>
             {
-                GlobalData.Status = SOME_MODE_STATUS.FIND_FOLLOW_TEXT;
+                GlobalData.Status = SOME_MODE_STATUS.FIND_TOP_PROFILE;
+                //GlobalData.Status = SOME_MODE_STATUS.FIND_POST;
+                System.Windows.Point topProfileCenter = new System.Windows.Point();
+                int topProfileRadius = 0;
+                System.Windows.Point followTextPos = new System.Windows.Point();
+                System.Drawing.Rectangle pictureRect = new System.Drawing.Rectangle();
+                System.Windows.Point heartPos = new System.Windows.Point();
+                System.Windows.Point replyPos = new System.Windows.Point();
+                System.Windows.Point postTextPos = new System.Windows.Point();
+                System.Windows.Point backBtnPos = new System.Windows.Point();
 
-                int prob = 0;
                 while (!GlobalData.ExitAllThread)
                 {
                     this.viewModel.LogText = GlobalData.Status.ToString();
                     try
                     {
                         bool res = CaptureProcScr(out Bitmap bmp);
-                        
+
 
                         if (res == true)
                         {
                             switch (GlobalData.Status)
                             {
-                                case SOME_MODE_STATUS.FIND_FOLLOW_TEXT:
+                                case SOME_MODE_STATUS.IDLE:
+                                    {
+                                       
+                                    }
+                                    break;
+                                case SOME_MODE_STATUS.FIND_TOP_PROFILE:
                                     //17 246 230
                                     {
                                         //region
-                                        bool mastRet = OpenCVHelper.SetBlackMask(bmp, bmp.Width / 6, bmp.Width);
+                                        bool mastRet = OpenCVHelper.SetBlackMask(bmp,
+                                            bmp.Width / 6, bmp.Width,
+                                            bmp.Height / 5, bmp.Height);
 
-                                        bool isSerchCircle = OpenCVHelper.SearchCircle(bmp, out System.Windows.Point loc, 50, true);
-                                        if(isSerchCircle)
+                                        bool isSerchCircle = OpenCVHelper.SearchTopProfileCircle(bmp, out topProfileCenter, out topProfileRadius, true);
+                                        if (isSerchCircle)
                                         {
-                                            GlobalData.Status = SOME_MODE_STATUS.FIND_FOLLOW_TEXT;
+                                            GlobalData.Status = SOME_MODE_STATUS.FIND_FOLLOW_BLUE_TEXT;
                                         }
                                         else
                                         {
-                                            //Move Wheel                                            
+                                            //Drag
                                             MouseTriggerInfo info = new MouseTriggerInfo();
-                                            info.MouseInfoEventType = MouseEventType.Wheel;
-                                            info.WheelData = -1;
+                                            info.MouseInfoEventType = MouseEventType.Drag;
                                             KeyBoardMouseController.MouseTriggerProcess(
-                                                GlobalData.SelectedProcess.Handle, loc, info);
+                                                GlobalData.SelectedProcess.MainWindowHandle,
+                                                new System.Windows.Point(), info);
                                         }
                                     }
                                     break;
-                                case SOME_MODE_STATUS.FIND_BOTTOM_MENU:
-                                    if(BmpFromFile(out Bitmap findBmp, "BottomMenu"))
+                                case SOME_MODE_STATUS.FIND_FOLLOW_BLUE_TEXT:
                                     {
-                                        if( OpenCVHelper.Search(bmp, findBmp, out System.Windows.Point loc, 99, true) )
+                                        bool isFind = OpenCVHelper.SearchBlueColor(bmp,
+                                            (int)topProfileCenter.X + topProfileRadius,
+                                            (int)topProfileCenter.Y - topProfileRadius,
+                                            bmp.Width / 2,
+                                            topProfileRadius * 2,
+                                            out followTextPos,
+                                            true
+                                            );
+                                        if (isFind)
                                         {
-                                            GlobalData.Status = SOME_MODE_STATUS.FIND_PICTURE; 
+                                            GlobalData.Status = SOME_MODE_STATUS.FIND_PICTURE;
                                         }
-                                    }                                    
+                                        else
+                                        {
+                                            GlobalData.Status = SOME_MODE_STATUS.PROC_FAIL;
+                                        }
+                                    }
                                     break;
+                                case SOME_MODE_STATUS.FIND_PICTURE:
+                                    {
+                                        //사진위치 파악
+                                        bool isFind = OpenCVHelper.SearchFeedPictureRect(bmp, out pictureRect, true);
+                                        if (isFind)
+                                        {
+                                            GlobalData.Status = SOME_MODE_STATUS.FIND_HEART;
+                                        }
+                                        else
+                                        {
+                                            GlobalData.Status = SOME_MODE_STATUS.PROC_FAIL;
+                                        }
+                                    }
+                                    break;
+                                case SOME_MODE_STATUS.FIND_HEART:
+                                    {
+                                        bool ret = OpenCVHelper.FindOneContourNum(bmp,
+                                            (int)topProfileCenter.X - topProfileRadius - 2, pictureRect.Bottom,
+                                            topProfileRadius * 2, topProfileRadius * 2 + 5,
+                                            out byte r, out byte g, out byte b,
+                                            out heartPos, true);
+
+                                        if (ret == true)
+                                        {
+                                            if (r == 255 && g == 255 && b == 255)//white
+                                            {
+                                                GlobalData.Status = SOME_MODE_STATUS.CLICK_HEART;
+                                            }
+                                            else
+                                            {
+                                                GlobalData.Status = SOME_MODE_STATUS.FIND_REPLY;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            GlobalData.Status = SOME_MODE_STATUS.PROC_FAIL;
+                                        }
+                                    }
+                                    break;
+                                case SOME_MODE_STATUS.CLICK_HEART:
+                                    {
+                                        //click
+                                        MouseTriggerInfo info = new MouseTriggerInfo();
+                                        info.MouseInfoEventType = MouseEventType.LeftClick;
+                                        KeyBoardMouseController.MouseTriggerProcess(
+                                            GlobalData.SelectedProcess.MainWindowHandle,
+                                            heartPos, info);
+
+                                        GlobalData.Status = SOME_MODE_STATUS.FIND_REPLY;
+                                    }
+                                    break;
+                                case SOME_MODE_STATUS.FIND_REPLY:
+                                    {
+                                        bool ret = OpenCVHelper.FindOneContourNum(bmp,
+                                            (int)topProfileCenter.X + topProfileRadius + 2, pictureRect.Bottom,
+                                            topProfileRadius * 2, topProfileRadius * 2 + 2,
+                                            out byte r, out byte g, out byte b,
+                                            out replyPos,
+                                            true);
+                                        // Console.WriteLine("contourNum " + contourNum);
+                                        if (ret)
+                                        {
+                                            GlobalData.Status = SOME_MODE_STATUS.CLICK_REPLY;
+                                        }
+                                        else
+                                        {
+                                            GlobalData.Status = SOME_MODE_STATUS.PROC_FAIL;
+                                        }
+                                    }
+                                    break;
+                                case SOME_MODE_STATUS.CLICK_REPLY:
+                                    {
+                                        //click
+                                        MouseTriggerInfo info = new MouseTriggerInfo();
+                                        info.MouseInfoEventType = MouseEventType.LeftClick;
+                                        KeyBoardMouseController.MouseTriggerProcess(
+                                            GlobalData.SelectedProcess.MainWindowHandle,
+                                            replyPos, info);
+
+                                        GlobalData.Status = SOME_MODE_STATUS.INPUT_TEXT;
+                                    }
+                                    break;
+                                case SOME_MODE_STATUS.INPUT_TEXT:
+                                    {
+                                        bool ret = KeyBoardMouseController.KeyboardTextTriggerProcess(
+                                            GlobalData.SelectedProcess.MainWindowHandle,
+                                            "맛있겠다~~다이어트 2주차....");
+                                        if(ret)
+                                        {
+                                            GlobalData.Status = SOME_MODE_STATUS.FIND_POST;
+                                        }
+                                        else
+                                        {
+                                            GlobalData.Status = SOME_MODE_STATUS.FIND_BACK_BTN;
+                                        }
+                                    }
+                                    break;
+                                case SOME_MODE_STATUS.FIND_POST:
+                                    {
+                                        int maskWidth = (bmp.Width / 6);
+                                        int maskHeight = (bmp.Height / 6);
+
+                                        bool isFind = OpenCVHelper.SearchBlueColor(bmp,
+                                    bmp.Width - (bmp.Width / 6), bmp.Height - (bmp.Height / 6),
+                                    maskWidth, maskHeight,
+                                     out postTextPos,
+                                    true
+                                    );
+                                        if (isFind)
+                                        {
+                                            GlobalData.Status = SOME_MODE_STATUS.CLICK_POST;
+                                        }
+                                        else
+                                        {
+                                            GlobalData.Status = SOME_MODE_STATUS.PROC_FAIL;
+                                        }
+                                    }
+                                    break;
+                                case SOME_MODE_STATUS.CLICK_POST:
+                                    {
+                                        //click
+                                        MouseTriggerInfo info = new MouseTriggerInfo();
+                                        info.MouseInfoEventType = MouseEventType.LeftClick;
+                                        KeyBoardMouseController.MouseTriggerProcess(
+                                            GlobalData.SelectedProcess.MainWindowHandle,
+                                            postTextPos, info);
+
+                                        GlobalData.Status = SOME_MODE_STATUS.FIND_BACK_BTN;
+                                    }
+                                    break;
+                                case SOME_MODE_STATUS.FIND_BACK_BTN:
+                                    {
+                                        int maskWidth = (bmp.Width / 9);
+                                        int maskHeight = (bmp.Height / 8);
+
+                                        bool ret = OpenCVHelper.FindBackArrow(bmp,
+                                            0, 0, maskWidth, maskHeight,
+                                            out backBtnPos,
+                                            true);
+                                        if(ret)
+                                        {
+                                            GlobalData.Status = SOME_MODE_STATUS.CLICK_BACK_BTN;
+                                        }
+                                        else
+                                        {
+                                            GlobalData.Status = SOME_MODE_STATUS.IDLE;
+                                        }
+                                        
+                                    }
+                                    break;
+                                case SOME_MODE_STATUS.CLICK_BACK_BTN:
+                                    {
+                                        //click
+                                        MouseTriggerInfo info = new MouseTriggerInfo();
+                                        info.MouseInfoEventType = MouseEventType.LeftClick;
+                                        KeyBoardMouseController.MouseTriggerProcess(
+                                            GlobalData.SelectedProcess.MainWindowHandle,
+                                            backBtnPos, info);                                      
+
+                                        GlobalData.Status = SOME_MODE_STATUS.CLICK_FOLLOW_BTN;
+                                    }
+                                    break;
+                                case SOME_MODE_STATUS.CLICK_FOLLOW_BTN:
+                                    {
+                                        //click
+                                        MouseTriggerInfo info = new MouseTriggerInfo();
+                                        info.MouseInfoEventType = MouseEventType.LeftClick;
+                                        KeyBoardMouseController.MouseTriggerProcess(
+                                            GlobalData.SelectedProcess.MainWindowHandle,
+                                            followTextPos, info);
+
+                                        //DragLong
+                                        info.MouseInfoEventType = MouseEventType.DragLong;
+                                        KeyBoardMouseController.MouseTriggerProcess(
+                                            GlobalData.SelectedProcess.MainWindowHandle,
+                                            new System.Windows.Point(0, 0), info);
+
+                                        GlobalData.Status = SOME_MODE_STATUS.FIND_TOP_PROFILE;
+                                    }
+                                    break;
+                                case SOME_MODE_STATUS.PROC_FAIL:
+                                    {
+                                        MouseTriggerInfo info = new MouseTriggerInfo();
+                                        info.MouseInfoEventType = MouseEventType.DragLong;
+                                        KeyBoardMouseController.MouseTriggerProcess(
+                                            GlobalData.SelectedProcess.MainWindowHandle,
+                                            new System.Windows.Point(0, 0), info);
+
+                                        GlobalData.Status = SOME_MODE_STATUS.FIND_TOP_PROFILE;
+                                    }
+                                    break;
+
+
                                 default:
                                     break;
                             }
                         }
                         GlobalData.SetDrawBitmap(bmp);
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         Console.WriteLine(e.Message);
                     }
@@ -110,9 +330,9 @@ namespace AI_Macro
         {
             try
             {
-                bmp = (Bitmap)Bitmap.FromFile(System.AppDomain.CurrentDomain.BaseDirectory + "\\Img\\" + fileName +".jpg", true);
+                bmp = (Bitmap)Bitmap.FromFile(System.AppDomain.CurrentDomain.BaseDirectory + "\\Img\\" + fileName + ".jpg", true);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 bmp = null;
                 return false;
@@ -120,7 +340,7 @@ namespace AI_Macro
 
             return true;
         }
-        
+
         private bool CaptureProcScr(out Bitmap bmp)
         {
             bool ret = false;
@@ -141,6 +361,6 @@ namespace AI_Macro
         {
             GlobalData.ExitAllThread = true;
         }
-   
- }
+
+    }
 }

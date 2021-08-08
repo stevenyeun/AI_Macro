@@ -36,13 +36,15 @@ namespace AI_Macro.View
             {
                 while (!GlobalData.ExitAllThread)
                 {
-                    if (GlobalData.GetBitmap(out Bitmap bmp) )
+                    this.Dispatcher.BeginInvoke(new ThreadStart(() =>
                     {
-                        this.Dispatcher.BeginInvoke(new ThreadStart(() =>
+                        bool ret = GlobalData.GetBitmap(out Bitmap bmp);
+                        if (ret == true)
                         {
+                            this.viewModel.BitmapSource = null;
                             this.viewModel.BitmapSource = BitmapConversion.BitmapToBitmapSource(bmp);
-                        }));
-                    }
+                        }
+                    }));
                     Thread.Sleep(200);
                 }
             }

@@ -15,6 +15,7 @@
         LeftClick,
         RightClick,
         Drag,
+        DragLong,
         Wheel,
 
         Max
