@@ -26,22 +26,30 @@ namespace AI_Macro
     /// </summary>
     public partial class MainWindow : Window
     {
-        private MainWindowVIewModel viewModel = new MainWindowVIewModel();
+        private MainWindowVIewModel viewModel = null;
         public MainWindow()
         {
             InitializeComponent();
 
+            MacroIni.Read();
+
             this.Closing += MainWindow_Closing;
 
             this.Topmost = true;
+
+            viewModel = new MainWindowVIewModel(this);
+            viewModel.MaxWaitTime = MacroIni.MaxWaitTime;
+            viewModel.MinWaitTime = MacroIni.MinWaitTime;
+
             this.DataContext = viewModel;
 
             CaptureProcScr(out Bitmap bmp);
-            StartSomeMode();
+            GlobalData.SetDrawBitmap(bmp);
+            //StartSomeMode();
         }
 
         //Reply Idea : MonthDay
-        private void StartSomeMode()
+        public void StartSomeMode()
         {
             new Thread(() =>
             {
@@ -55,8 +63,9 @@ namespace AI_Macro
                 System.Windows.Point replyPos = new System.Windows.Point();
                 System.Windows.Point postTextPos = new System.Windows.Point();
                 System.Windows.Point backBtnPos = new System.Windows.Point();
+                Stopwatch stopwatch = new Stopwatch();
 
-                while (!GlobalData.ExitAllThread)
+                while (!GlobalData.ExitSomeThread)
                 {
                     this.viewModel.LogText = GlobalData.Status.ToString();
                     try
@@ -123,12 +132,17 @@ namespace AI_Macro
                                         bool isFind = OpenCVHelper.SearchFeedPictureRect(bmp, out pictureRect, true);
                                         if (isFind)
                                         {
-                                            GlobalData.Status = SOME_MODE_STATUS.FIND_HEART;
+                                            GlobalData.Status = SOME_MODE_STATUS.FIND_MAIN_OBJECT;
                                         }
                                         else
                                         {
                                             GlobalData.Status = SOME_MODE_STATUS.PROC_FAIL;
                                         }
+                                    }
+                                    break;
+                                case SOME_MODE_STATUS.FIND_MAIN_OBJECT:
+                                    {
+                                        GlobalData.Status = SOME_MODE_STATUS.FIND_REPLY;
                                     }
                                     break;
                                 case SOME_MODE_STATUS.FIND_HEART:
@@ -147,7 +161,7 @@ namespace AI_Macro
                                             }
                                             else
                                             {
-                                                GlobalData.Status = SOME_MODE_STATUS.FIND_REPLY;
+                                                GlobalData.Status = SOME_MODE_STATUS.PROC_FAIL;
                                             }
                                         }
                                         else
@@ -165,7 +179,7 @@ namespace AI_Macro
                                             GlobalData.SelectedProcess.MainWindowHandle,
                                             heartPos, info);
 
-                                        GlobalData.Status = SOME_MODE_STATUS.FIND_REPLY;
+                                        GlobalData.Status = SOME_MODE_STATUS.CLICK_FOLLOW_BTN;
                                     }
                                     break;
                                 case SOME_MODE_STATUS.FIND_REPLY:
@@ -237,13 +251,14 @@ namespace AI_Macro
                                     break;
                                 case SOME_MODE_STATUS.CLICK_POST:
                                     {
-                                        //click
+                                        //
+#if false
                                         MouseTriggerInfo info = new MouseTriggerInfo();
                                         info.MouseInfoEventType = MouseEventType.LeftClick;
                                         KeyBoardMouseController.MouseTriggerProcess(
                                             GlobalData.SelectedProcess.MainWindowHandle,
                                             postTextPos, info);
-
+#endif
                                         GlobalData.Status = SOME_MODE_STATUS.FIND_BACK_BTN;
                                     }
                                     break;
@@ -264,7 +279,6 @@ namespace AI_Macro
                                         {
                                             GlobalData.Status = SOME_MODE_STATUS.IDLE;
                                         }
-                                        
                                     }
                                     break;
                                 case SOME_MODE_STATUS.CLICK_BACK_BTN:
@@ -276,7 +290,7 @@ namespace AI_Macro
                                             GlobalData.SelectedProcess.MainWindowHandle,
                                             backBtnPos, info);                                      
 
-                                        GlobalData.Status = SOME_MODE_STATUS.CLICK_FOLLOW_BTN;
+                                        GlobalData.Status = SOME_MODE_STATUS.FIND_HEART;
                                     }
                                     break;
                                 case SOME_MODE_STATUS.CLICK_FOLLOW_BTN:
@@ -294,7 +308,24 @@ namespace AI_Macro
                                             GlobalData.SelectedProcess.MainWindowHandle,
                                             new System.Windows.Point(0, 0), info);
 
-                                        GlobalData.Status = SOME_MODE_STATUS.FIND_TOP_PROFILE;
+                                        GlobalData.Status = SOME_MODE_STATUS.SET_WAIT_TIME;
+                                    }
+                                    break;
+                                case SOME_MODE_STATUS.SET_WAIT_TIME:
+                                    {
+                                        this.viewModel.SetWaitSec = new Random().Next(
+                                            this.viewModel.MinWaitTime*60, this.viewModel.MaxWaitTime*60 );
+                                        GlobalData.Status = SOME_MODE_STATUS.WAIT_TIME;
+                                        stopwatch.Restart();
+                                    }
+                                    break;
+                                case SOME_MODE_STATUS.WAIT_TIME:
+                                    {
+                                        this.viewModel.CurWaitSec = (int)stopwatch.Elapsed.TotalSeconds;
+                                        if(this.viewModel.CurWaitSec >= this.viewModel.SetWaitSec)
+                                        {
+                                            GlobalData.Status = SOME_MODE_STATUS.FIND_TOP_PROFILE;
+                                        }
                                     }
                                     break;
                                 case SOME_MODE_STATUS.PROC_FAIL:
@@ -314,16 +345,22 @@ namespace AI_Macro
                                     break;
                             }
                         }
+                        
                         GlobalData.SetDrawBitmap(bmp);
                     }
                     catch (Exception e)
                     {
                         Console.WriteLine(e.Message);
                     }
-                    Thread.Sleep(1000);
+                    Thread.Sleep(2000);
                 }
             }
             ).Start();
+        }
+
+        public void StopSomeMode()
+        {
+            GlobalData.ExitSomeThread = true;
         }
 
         private bool BmpFromFile(out Bitmap bmp, string fileName)
@@ -341,7 +378,7 @@ namespace AI_Macro
             return true;
         }
 
-        private bool CaptureProcScr(out Bitmap bmp)
+        public bool CaptureProcScr(out Bitmap bmp)
         {
             bool ret = false;
 
@@ -359,6 +396,8 @@ namespace AI_Macro
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            //MacroIni.WaitPeriod = this.viewModel.WaitPeriod;
+            MacroIni.Write();
             GlobalData.ExitAllThread = true;
         }
 

@@ -14,7 +14,7 @@
         <st:AutoGrid Rows="Auto,Auto,Auto,Auto,Auto,*" Columns="*" Orientation="Vertical" >
 
             <!-- 1 -->
-            <st:AutoGrid Rows="25" Columns="8*,2*" Orientation="Horizontal">
+            <st:AutoGrid Rows="25" Columns="8*,2*" Orientation="Horizontal" ChildMargin="2">
                 <ComboBox
                     ItemsSource="{Binding Path=ProcDataList}"
                     SelectedItem="{Binding Path=SelectedProcData}"                    
@@ -40,7 +40,7 @@
             </st:AutoGrid>
 
             <!-- 2 -->
-            <st:AutoGrid Rows="*" Columns="300, *" Orientation="Horizontal">
+            <st:AutoGrid Rows="*" Columns="250, *" Orientation="Horizontal" ChildMargin="2" >
 
                 <!--Left : Current Status-->
                 <Border BorderThickness="2" Margin="2" BorderBrush="WhiteSmoke">
@@ -53,8 +53,8 @@
 
                     <!--Control-->
                     <st:AutoGrid Rows="25" Columns="*,*" Orientation="Horizontal">
-                        <Button Content="Start"/>
-                        <Button Content="Stop"/>
+                        <Button Content="Start" Command="{Binding StartCommand}" />
+                        <Button Content="Stop" Command="{Binding StopCommand}"/>
                     </st:AutoGrid>
 
                     <!--HashTag-->
@@ -72,18 +72,27 @@
             </st:AutoGrid>
 
             <!-- 3 -->
-            <st:AutoGrid Rows="25" Columns="Auto,*" Orientation="Horizontal">
+            <st:AutoGrid Rows="30" Columns="Auto,Auto" Orientation="Horizontal" ChildMargin="2">
                 <!--Detailed Control-->
-                <Label Content="Period" />
-                <TextBox Text="00"/>
+                <st:AutoGrid Rows="Auto" Columns="*, *, *, *, *, *, *, *" Orientation="Horizontal">
+                    <Label Content="WaitTime" />
+                    <TextBox IsReadOnly="True" Text="{Binding Path=CurWaitTimeFormat, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <Label Content="/" />
+                    <TextBox IsReadOnly="True" Text="{Binding Path=SetWaitTimeFormat, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                    <Label Content="MinMin" />
+                    <TextBox IsReadOnly="True" Text="{Binding Path=MinWaitTime, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <Label Content="MaxMin" />
+                    <TextBox IsReadOnly="True" Text="{Binding Path=MaxWaitTime, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                </st:AutoGrid>
             </st:AutoGrid>
 
             <!-- 4 -->
-            <st:AutoGrid Rows="25, 25" Columns="*" Orientation="Horizontal">
+            <st:AutoGrid Rows="30, 25" Columns="*" Orientation="Horizontal" ChildMargin="2">
                 <!-- Mode -->
                 <Label Content="AI Mode" />
 
-                <st:AutoGrid>
+                <st:AutoGrid ChildMargin="1">
                     <CheckBox Content="Id"/>
                     <CheckBox Content="Pos"/>
                     <CheckBox Content="Follower"/>
@@ -92,10 +101,10 @@
             </st:AutoGrid>
 
             <!-- 5 -->
-            <st:AutoGrid Rows="25, 25" Columns="*" Orientation="Horizontal">
+            <st:AutoGrid Rows="30, 25" Columns="*" Orientation="Horizontal" ChildMargin="2">
                 <!--Option-->
                 <Label Content="Option" />
-                <st:AutoGrid>
+                <st:AutoGrid ChildMargin="1">
                     <CheckBox Content="Like"/>
                     <CheckBox Content="Reply"/>
                     <CheckBox Content="Follow"/>
@@ -104,7 +113,7 @@
             </st:AutoGrid>
 
             <!-- 6 -->
-            <st:AutoGrid Rows="25,*" Columns="*" Orientation="Horizontal">
+            <st:AutoGrid Rows="30,*" Columns="*" Orientation="Horizontal" ChildMargin="2">
                 <Label Content="Log" />
                 <Border BorderBrush="WhiteSmoke" BorderThickness="1">
                     <ScrollViewer>

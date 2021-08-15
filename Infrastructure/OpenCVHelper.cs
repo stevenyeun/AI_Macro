@@ -664,7 +664,7 @@ namespace Macro.Infrastructure
                 if (area > expectedRectArea)  //면적이 일정크기 이상이어야 한다. 
                 {
                     int size = approx.Length;
-                    if (size == 4 && Cv2.IsContourConvex(approx))
+                    if (size >= 4 && Cv2.IsContourConvex(approx))
                     {
                         var rect = Cv2.BoundingRect(approx);
                         avgColor.Add( Cv2.Mean(sourceMat[rect]).Val0 );
@@ -675,7 +675,15 @@ namespace Macro.Infrastructure
             bool ret = false;
 
             Point[] finalContour = null;
-            if (filter1Contours.Count > 0)
+
+            /*
+            if(filter1Contours.Count == 1)
+            {
+                finalContour = filter1Contours[0];
+                ret = true;
+            }
+            */
+            if (filter1Contours.Count > 1)
             {
                 //second filter
                 List<double> newAvgColor = new List<double>();
@@ -698,6 +706,7 @@ namespace Macro.Infrastructure
 
                 ret = true;
             }
+            
 
             if (isResultDisplay && ret)
             {

@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using System.Threading;
 using System.Windows.Input;
@@ -16,10 +17,11 @@ using System.Windows.Input;
 public class MainWindowVIewModel : ViewModelBase
 {
 
-    public MainWindowVIewModel()
+    public MainWindowVIewModel(MainWindow mainWindow)
     {
-
+        this.mainWindow = mainWindow;
     }
+    private MainWindow mainWindow;
     //ComboBox Items
     private ObservableCollection<ProcessData> _ProcDataList;
     public ObservableCollection<ProcessData> ProcDataList
@@ -44,6 +46,10 @@ public class MainWindowVIewModel : ViewModelBase
             if (value != null)
             {
                 GlobalData.SelectedProcess = value.Proc;
+                if(this.mainWindow.CaptureProcScr(out Bitmap bmp))
+                {
+                    GlobalData.SetDrawBitmap(bmp);
+                }
                 OnPropertyChanged("SelectedProcData");
             }
         }
@@ -60,15 +66,96 @@ public class MainWindowVIewModel : ViewModelBase
             _LogText += now + value;
             _LogText += "\n";
             if (value != null)
-            {                
+            {
                 OnPropertyChanged("LogText");
             }
         }
     }
 
 
+    private int _MinWaitTime;
+    public int MinWaitTime
+    {
+        get { return _MinWaitTime; }
+        set
+        {
+            _MinWaitTime = value;
+            OnPropertyChanged("MinWaitTime");
+        }
+    }
+    private int _MaxWaitTime;
+    public int MaxWaitTime
+    {
+        get { return _MaxWaitTime; }
+        set
+        {
+            _MaxWaitTime = value;
+            OnPropertyChanged("MaxWaitTime");
+        }
+    }
+
+    private double _CurWaitSec;
+    public double CurWaitSec//sec
+    {
+        get
+        {
+            return _CurWaitSec;
+        }
+        set
+        {
+            //_CurWaitTime = value;
+            //sec to min
+            _CurWaitSec = value;
+            int min = (int)value / 60;
+            int sec = (int)value % 60;
+            CurWaitTimeFormat = min.ToString() + "m" + sec.ToString() + "s";
+        }
+    }
+    private string _CurWaitTimeFormat= "0m0s";//mm:ss
+    public string CurWaitTimeFormat//mm:ss
+    {
+        get
+        {
+            return _CurWaitTimeFormat;
+        }
+        set
+        {
+            _CurWaitTimeFormat = value;
+            OnPropertyChanged("CurWaitTimeFormat");
+        }
+    }
 
 
+    private int _SetWaitSec;
+    public int SetWaitSec//sec
+    {
+        get
+        {
+            return _SetWaitSec;
+        }
+        set
+        {
+            //_SetWaitTime = value;
+            //sec to min
+            _SetWaitSec = value;
+            int min = value / 60;
+            int sec = value % 60;
+            SetWaitTimeFormat = min.ToString() + "m" + sec.ToString() + "s";
+        }
+    }
+    private string _SetWaitTimeFormat="0m0s";//mm:ss
+    public string SetWaitTimeFormat//mm:ss
+    {
+        get
+        {
+            return _SetWaitTimeFormat;
+        }
+        set
+        {
+            _SetWaitTimeFormat = value;
+            OnPropertyChanged("SetWaitTimeFormat");
+        }
+    }
     //private string _ChInfo;
     //public string ChInfo
     //{
@@ -133,18 +220,29 @@ public class MainWindowVIewModel : ViewModelBase
         }).Start();
     }
 
-
-
-    private ICommand _OkCommand;
-    public ICommand OkCommand
+    private ICommand _StartCommand;
+    public ICommand StartCommand
     {
         get
         {
-            return (this._OkCommand) ?? (this._OkCommand = new DelegateCommand(Ok_Execute));
+            return (this._StartCommand) ?? (this._StartCommand = new DelegateCommand(Start_Execute));
         }
     }
-    private void Ok_Execute()
+    private void Start_Execute()
     {
+        this.mainWindow.StartSomeMode();
+    }
 
+    private ICommand _StopCommand;
+    public ICommand StopCommand
+    {
+        get
+        {
+            return (this._StopCommand) ?? (this._StopCommand = new DelegateCommand(Stop_Execute));
+        }
+    }
+    private void Stop_Execute()
+    {
+        this.mainWindow.StopSomeMode();
     }
 }
